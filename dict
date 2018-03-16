@@ -1,0 +1,53 @@
+#!/bin/bash
+
+function extract_tenses(){
+	tenses=$(echo "$1" | 
+	jq -r '.exchange|[.word_past[]?,.word_done[]?,.word_ing[]?]' | 
+	tr -d '\n' | 
+	sed 's/["]//g' | 
+	sed 's/\[//g' | 
+	sed 's/\]//g' | 
+	sed 's/  / /g' | 
+	sed 's/^.//')
+	if [[ -z $tenses ]]; then
+		echo -n '[No meaningful tenses]'
+	else
+		echo -n "$tenses"
+	fi
+}
+
+function extract_meanings(){
+	echo "$1" | 
+	jq -r '.symbols[]|.parts[]|[.part, .means[]]' | 
+	tr -d '\n' | 
+	sed 's/["]//g' | 
+	sed 's/\[//g' | 
+	sed 's/\]//g' | 
+	sed 's/  / /g' | 
+	sed 's/^.//' | 
+	sed 's/\.\,/./g' | 
+	sed 's/\([a-z][a-z]*\.\)/\n\1/g'
+}
+
+word="$1"
+token='4C238C588582643EB8A45398960FA453'
+url="http://dict-co.iciba.com/api/dictionary.php"
+
+if [[ -z $word ]]; then
+	echo 'Usage: dict <word>'
+	exit -1
+fi
+
+json=`curl -Gs $url --data-urlencode "w=$word" --data-urlencode "type=json" --data-urlencode "key=$token"`
+
+echo -n 'Word: '
+echo "$json" | jq -r '.word_name'
+
+echo -n 'Tenses: '
+extract_tenses "$json"
+
+echo ''
+echo -n 'Meanings: '
+extract_meanings "$json"
+echo ''
+

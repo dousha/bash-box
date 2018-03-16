@@ -1,0 +1,46 @@
+#!/bin/bash
+
+IFS=$'\n'
+url="http://feed43.com/cncalc.xml"
+glob=`curl -s $url`
+
+titles_glob=$(echo "$glob" | grep -E '^<title>.+</title>$' | cut -b 8- | rev | cut -b 9- | rev)
+links_glob=$(echo "$glob" | grep -E '^<link>.+</link>$' | cut -b 7- | rev | cut -b 8- | rev)
+titles=($titles_glob)
+links=($links_glob)
+count=${#titles[@]}
+
+casio_entries=()
+ti_entries=()
+hp_entries=()
+
+for ((i=0;i<count;i++)) {
+	entry="${titles[i]} | ${links[i]}"
+	if [[ -n `echo $entry | grep -w 'CASIO'` ]]; then
+		casio_entries+=($entry)
+	elif [[ -n `echo $entry | grep -w 'TI'` ]]; then
+		ti_entries+=($entry)
+	else
+		hp_entries+=($entry)
+	fi
+}
+
+echo "--[CASIO Board]-[${#casio_entries[@]}]--------"
+for entry in "${casio_entries[@]}"; do
+	echo $entry
+done
+
+echo ''
+
+echo "--[TI Board]-[${#ti_entries[@]}]---------"
+for entry in "${ti_entries[@]}"; do
+	echo $entry
+done
+
+echo ''
+
+echo "--[HP Board]-[${#hp_entries[@]}]---------"
+for entry in "${hp_entries[@]}"; do
+	echo $entry
+done
+

@@ -1,0 +1,60 @@
+#!/bin/bash
+
+output_dir="$HOME/Documents/news/"
+
+IFS=$'\n'
+home_url='http://news-at.zhihu.com/api/4/stories/latest'
+history_url_head='https://news-at.zhihu.com/api/4/news/before/'
+content_url_head='https://news-at.zhihu.com/api/4/news/'
+count=0
+
+mkdir -p $output_dir
+
+if [[ -z $1 ]]; then
+	date_string=`date '+%Y%m%d'`
+else
+	if [[ $(($1)) -lt 20130519 ]]; then
+		echo "!> Zhihu Daily was not issued at that time!"
+		exit -1
+	else
+		date -d $1 '+%Y%m%d' > /dev/null
+		if [[ $? -ne 0 ]]; then
+			echo "!> Bad date format! (Use YYMMDD, e.g. 20170512)"
+			exit -1
+		fi
+		date_string=$1
+	fi
+fi
+
+echo "|> Fetching articles @ $date_string..."
+if [[ -z $1 ]]; then
+	glob=`curl -s $home_url`
+else
+	glob=`curl -s $history_url_head$date_string`
+fi
+
+ids=($(echo "$glob" | 
+	jq -r ".stories[]|[.title, .id]" | 
+	xargs | 
+	sed 's/\[ //g' | 
+	sed 's/ \] /\n/g' | 
+	sed 's/ \]//g' | 
+	grep -oE '|[0-9]{6,}'))
+
+file_name="${output_dir}zhihu-${date_string}.html"
+if [[ -e "$file_name" ]]; then
+	rm "$file_name"
+fi
+
+echo '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' >> $file_name
+for id in ${ids[@]}; do
+	page=`curl -s "$content_url_head$id"`
+	title=`echo "$page" | jq -r '.title'`
+	body=`echo "$page" | jq -r '.body' | sed 's/<script[^>]*>[^>]*>//g'`
+	echo "<h1>$title</h1><hr>$body<br><br>" >> $file_name
+	echo "|> "$title" fetched"
+	((count=$count+1))
+done
+echo '</body></html>' >> $file_name
+echo "|> Fetched $count article(s)"
+
