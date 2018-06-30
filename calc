@@ -1,0 +1,5 @@
+#!/bin/bash
+
+glob=`giac $1 2> /dev/null`
+echo $glob
+
