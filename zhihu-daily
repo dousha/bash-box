@@ -42,10 +42,10 @@ ids=($(echo "$glob" |
 	grep -oE '|[0-9]{6,}'))
 
 folder_name="${output_dir}zhihu-${date_string}"
-if [[ -e "$file_name" ]]; then
-	rm -rf "$file_name"
+if [[ -d "$folder_name" ]]; then
+	rm -rf "$folder_name"
 fi
-mkdir "$folder_name"
+mkdir -p "$folder_name"
 
 for id in ${ids[@]}; do
 	page=`curl -s "$content_url_head$id"`
